@@ -1,1 +1,292 @@
-# Teste
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minhas Reuniões</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    input {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      width: 100%;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    button.btn-add {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    button.btn-add:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .search-box {
+      margin-bottom: 20px;
+    }
+
+    .meeting-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .meeting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .meeting-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meeting-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    .meeting-title.completed {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .meeting-details {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      display: flex;
+      gap: 12px;
+    }
+
+    .badge-time {
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .meeting-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .btn-action.complete {
+      color: var(--success);
+      border-color: #bbf7d0;
+    }
+
+    .btn-action.delete {
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Agenda de Reuniões</h1>
+      <p class="subtitle">Organize seus compromissos e horários com facilidade</p>
+    </header>
+
+    <div class="card">
+      <form id="meetingForm">
+        <div class="form-grid">
+          <input type="text" id="titleInput" placeholder="Nome da Reunião (ex: Reunião Fepam)" required>
+          <input type="date" id="dateInput" required>
+          <input type="time" id="timeInput" required>
+        </div>
+        <button type="submit" class="btn-add">+ Adicionar Reunião</button>
+      </form>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Buscar por nome da reunião...">
+    </div>
+
+    <div class="meeting-list" id="meetingList"></div>
+  </div>
+
+  <script>
+    const initialMeetings = [
+      { id: '1', title: 'Reunião Fepam', date: '2026-09-17', time: '13:45', completed: false },
+      { id: '2', title: 'Reunião IBAMA', date: '2026-08-28', time: '15:30', completed: false }
+    ];
+
+    let meetings = JSON.parse(localStorage.getItem('reunioes_db')) || initialMeetings;
+
+    const form = document.getElementById('meetingForm');
+    const meetingList = document.getElementById('meetingList');
+    const searchInput = document.getElementById('searchInput');
+
+    function saveToStorage() {
+      localStorage.setItem('reunioes_db', JSON.stringify(meetings));
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    }
+
+    function renderMeetings() {
+      const query = searchInput.value.toLowerCase();
+      const filtered = meetings.filter(m => m.title.toLowerCase().includes(query));
+
+      if (filtered.length === 0) {
+        meetingList.innerHTML = '<div class="empty-state">Nenhuma reunião encontrada.</div>';
+        return;
+      }
+
+      meetingList.innerHTML = filtered.map(m => `
+        <div class="meeting-item">
+          <div class="meeting-info">
+            <span class="meeting-title ${m.completed ? 'completed' : ''}">${m.title}</span>
+            <div class="meeting-details">
+              <span>📅 ${formatDate(m.date)}</span>
+              <span class="badge-time">⏰ ${m.time}</span>
+            </div>
+          </div>
+          <div class="meeting-actions">
+            <button class="btn-action complete" onclick="toggleComplete('${m.id}')">
+              ${m.completed ? 'Desfazer' : 'Concluir'}
+            </button>
+            <button class="btn-action delete" onclick="deleteMeeting('${m.id}')">Excluir</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('titleInput').value;
+      const date = document.getElementById('dateInput').value;
+      const time = document.getElementById('timeInput').value;
+
+      meetings.push({ id: Date.now().toString(), title, date, time, completed: false });
+      saveToStorage();
+      renderMeetings();
+      form.reset();
+    });
+
+    searchInput.addEventListener('input', renderMeetings);
+
+    function toggleComplete(id) {
+      meetings = meetings.map(m => m.id === id ? { ...m, completed: !m.completed } : m);
+      saveToStorage();
+      renderMeetings();
+    }
+
+    function deleteMeeting(id) {
+      meetings = meetings.filter(m => m.id !== id);
+      saveToStorage();
+      renderMeetings();
+    }
+
+    renderMeetings();
+  </script>
+</body>
+</html>
